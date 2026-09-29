@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pick Me Up Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
+<style>
+:root{
+--bg:#12161b;
+--panel:#1b2128;
+--phone:#0b0e12;
+--surface:#1f262e;
+--line:#2c3540;
+--fg:#eef1f4;
+--muted:#8c98a5;
+--accent:#ff7a1a;
+--accent-ink:#1a0d02;
+--empty:#5d6975; --light:#3fb5e8; --on:#ffb020; --packed:#ff4f4f; --ok:#35c98a;
+--display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+--body:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;margin:0;padding-inline:16px;padding-block:24px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stage{display:flex;flex-wrap:wrap;gap:28px;justify-content:center;align-items:flex-start;max-width:1000px;margin:0 auto}
+.phone{width:min(380px,100%);height:760px;max-height:calc(100vh - 48px);min-height:620px;background:var(--phone);border:10px solid #000;border-radius:44px;box-shadow:0 0 0 1px #333,0 30px 60px rgba(0,0,0,.5);position:relative;overflow:hidden;display:flex;flex-direction:column}
+.status{display:flex;justify-content:space-between;padding:10px 22px 4px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.apphead{display:flex;justify-content:space-between;align-items:center;padding:6px 18px 10px}
+.logo{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.3px;line-height:1}
+.logo span{color:var(--accent)}
+.city{font-size:12px;color:var(--muted);text-align:right}
+.screen{flex:1;min-height:0;overflow-y:auto;position:relative}
+.screen[hidden]{display:none!important}
+#map{width:100%;height:100%;display:block;background:#0f1419}
+.pinlabel{font:600 10px var(--body);fill:var(--fg);paint-order:stroke;stroke:#0f1419;stroke-width:3px}
+.pin{cursor:pointer}
+.pulse{animation:pulse 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{from{transform:scale(1);opacity:.55}to{transform:scale(2.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none;opacity:.25}}
+.legend{position:absolute;left:10px;bottom:10px;display:flex;gap:8px;background:rgba(11,14,18,.85);padding:6px 10px;border-radius:10px;font-size:10.5px;color:var(--muted)}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.tabs{display:flex;border-top:1px solid var(--line);background:var(--phone)}
+.tabs button{flex:1;background:none;border:0;padding:10px 0 14px;font-size:12px;color:var(--muted);font-weight:500}
+.tabs button[aria-selected="true"]{color:var(--accent)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:10px 18px 18px;box-shadow:0 -10px 30px rgba(0,0,0,.5);transform:translateY(105%);transition:transform .28s ease;z-index:5;max-height:80%;overflow-y:auto}
+.sheet.open{transform:none}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+.sheet h2{font-family:var(--display);font-size:26px;margin:0;line-height:1.05;text-wrap:balance}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.5px}
+.meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:10px 0 4px}
+.meter b{display:block;height:100%;border-radius:4px;transition:width .4s}
+.count{font-family:var(--display);font-size:40px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.fact{background:var(--phone);border-radius:10px;padding:8px 10px}
+.fact small{display:block;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.6px}
+.fact strong{font-size:13px}
+.btn{border:0;border-radius:12px;padding:12px 14px;font-weight:700;width:100%}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--phone);border:1px solid var(--line)}
+.btn.small{width:auto;padding:8px 12px;font-size:12px;border-radius:9px}
+.muted{color:var(--muted)}
+.checkedbox{background:rgba(53,201,138,.12);border:1px solid rgba(53,201,138,.4);border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:13px}
+.hc{display:flex;gap:6px;margin-top:8px}
+.hc button{flex:1}
+.notif{position:absolute;left:10px;right:10px;top:34px;background:rgba(40,48,58,.97);backdrop-filter:blur(8px);border-radius:16px;padding:12px 14px;z-index:10;box-shadow:0 10px 30px rgba(0,0,0,.5);transform:translateY(-140%);transition:transform .3s ease}
+.notif.show{transform:none}
+.notif .app{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+.notif p{margin:4px 0 8px;font-size:13.5px;line-height:1.35}
+.notif .row button{flex:1}
+.list{padding:4px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;gap:6px;padding:4px 14px 8px;overflow-x:auto}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:6px 12px;font-size:12px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.card{background:var(--surface);border:0;border-radius:14px;padding:12px;text-align:left;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;width:100%}
+.card .name{font-weight:700;font-size:14.5px}
+.card .sub{font-size:11.5px;color:var(--muted)}
+.card .n{font-family:var(--display);font-size:28px;font-weight:700;grid-row:span 2;text-align:right;font-variant-numeric:tabular-nums;line-height:1}
+.card .n small{font-size:13px;color:var(--muted)}
+.pro{padding:6px 16px 20px;display:flex;flex-direction:column;gap:12px}
+.plan{background:var(--surface);border-radius:16px;padding:16px;border:1px solid var(--line)}
+.plan.hot{border-color:var(--accent)}
+.plan h3{font-family:var(--display);font-size:24px;margin:0}
+.price{font-family:var(--display);font-size:34px;font-weight:700}
+.price small{font-size:14px;color:var(--muted);font-family:var(--body);font-weight:400}
+.plan ul{margin:8px 0 0;padding-left:18px;line-height:1.7;font-size:13px}
+.ad{border:1px dashed var(--line);border-radius:10px;padding:10px;font-size:11.5px;color:var(--muted);text-align:center}
+.toast{position:absolute;left:50%;top:96px;transform:translate(-50%,20px);background:var(--fg);color:var(--phone);padding:8px 14px;border-radius:99px;font-size:12.5px;font-weight:700;opacity:0;transition:.25s;z-index:9;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.controls{flex:1 1 300px;max-width:420px;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}
+.eyebrow{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);font-weight:700}
+.controls h1{font-family:var(--display);font-size:34px;margin:4px 0 6px;line-height:1;text-wrap:balance}
+.controls p{color:var(--muted);line-height:1.5;margin:0 0 14px}
+.step{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.step .num{width:26px;height:26px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-family:var(--display);font-weight:700}
+.step h3{margin:2px 0 4px;font-size:14px}
+.step p{margin:0 0 8px;font-size:12.5px}
+.step .row .btn{flex:1 1 auto}
+.toggle{display:flex;align-items:center;gap:10px;font-size:13px;margin:6px 0 12px}
+.switch{width:40px;height:22px;border-radius:11px;background:var(--line);border:0;position:relative;padding:0;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--fg);transition:.2s}
+.switch[aria-checked="true"]{background:var(--ok)}
+.switch[aria-checked="true"]::after{left:21px}
+.log{margin-top:10px;background:var(--phone);border-radius:10px;padding:10px;font-size:11.5px;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);height:120px;overflow-y:auto;line-height:1.6}
+.log b{color:var(--fg);font-weight:500}
+.note{font-size:11px;color:var(--muted);margin-top:12px}
+</style>
+</head>
+<body>
+<div class="stage">
+<div class="phone" id="phone">
+<div class="status"><span id="clock">5:42 PM</span><span>5G ▮▮▮</span></div>
+<div class="apphead">
+<div class="logo">Pick Me <span>Up</span></div>
+<div class="city">Charlotte, NC<br><span id="liveTotal">– players on court</span></div>
+</div>
+<div class="screen" id="scr-map">
+<svg id="map" viewBox="0 0 360 520" preserveAspectRatio="xMidYMid meet" aria-label="Map of Charlotte courts"></svg>
+<div class="legend"><span><i style="background:var(--empty)"></i>Empty</span><span><i style="background:var(--light)"></i>Light</span><span><i style="background:var(--on)"></i>Game On</span><span><i style="background:var(--packed)"></i>Packed</span></div>
+</div>
+<div class="screen" id="scr-list" hidden>
+<div class="chips" role="group" aria-label="Filters">
+<button class="chip" data-f="all" aria-pressed="true">All courts</button>
+<button class="chip" data-f="active" aria-pressed="false">Active now</button>
+<button class="chip" data-f="free" aria-pressed="false">Free</button>
+<button class="chip" data-f="lights" aria-pressed="false">Lights</button>
+</div>
+<div class="list" id="list"></div>
+</div>
+<div class="screen" id="scr-pro" hidden>
+<div class="pro">
+<div class="plan">
+<h3>Free</h3>
+<div class="price">$0 <small>forever</small></div>
+<ul><li>Court map and live player counts</li><li>Check in and out, including Auto Check-In</li><li>Hours, fees, and capacity for every court</li><li>Light banner ads</li></ul>
+</div>
+<div class="plan hot">
+<h3>Pick Me Up Pro</h3>
+<div class="price">$3.99 <small>/ month · or $29.99/yr</small></div>
+<ul><li>No ads</li><li>Filter games by skill level</li><li>“Game starting” alerts at your courts</li><li>Personal stats and check-in history</li><li>Priority tournament entry</li></ul>
+<button class="btn primary" style="margin-top:12px" id="proBtn">Start 3 free months (beta thank-you)</button>
+</div>
+<div class="ad">Sponsored · Your gym or shoe store could be here · $150/mo</div>
+</div>
+</div>
+<div class="tabs" role="tablist">
+<button role="tab" aria-selected="true" data-t="map">Map</button>
+<button role="tab" aria-selected="false" data-t="list">Courts</button>
+<button role="tab" aria-selected="false" data-t="pro">Pro</button>
+</div>
+<div class="sheet" id="sheet" aria-live="polite"></div>
+<div class="notif" id="notif" role="alert"></div>
+<div class="toast" id="toast"></div>
+</div>
+<aside class="controls">
+<div class="eyebrow">Group 7 · Live Demo</div>
+<h1>How a check-in works</h1>
+<p>Click through these steps while presenting. The phone on the left acts like a real app. All courts and counts are sample data.</p>
+<div class="toggle"><button class="switch" id="autoSw" role="switch" aria-checked="false" aria-label="Auto Check-In"></button><span><b>Auto Check-In</b> <span class="muted">— hands-free, like a parking garage</span></span></div>
+<div class="step"><div class="num">1</div><div>
+<h3>Walk onto a court</h3>
+<p>The phone enters the court’s ~100-yard geofence. After 5 minutes, the app asks the player to check in.</p>
+<div class="row"><button class="btn small primary" data-walk="reedy">Go to Reedy Creek</button><button class="btn small ghost" data-walk="uncc">Go to UNCC Rec</button></div>
+</div></div>
+<div class="step"><div class="num">2</div><div>
+<h3>Stay a while</h3>
+<p>At 90 minutes the app asks if you’re still there. At 2 hours the check-in expires on its own.</p>
+<div class="row"><button class="btn small ghost" id="ff90">Skip ahead 90 min</button><button class="btn small ghost" id="ff120">Skip ahead 2 hrs</button></div>
+</div></div>
+<div class="step"><div class="num">3</div><div>
+<h3>Walk away</h3>
+<p>Once you’ve been outside the geofence for 10 minutes, you’re checked out automatically. No tap needed.</p>
+<div class="row"><button class="btn small ghost" id="leave">Leave the court</button><button class="btn small ghost" id="reset">Reset demo</button></div>
+</div></div>
+<div class="log" id="log" aria-live="polite"></div>
+<div class="note">Counts on other courts change every few seconds to show real-time updates.</div>
+</aside>
+</div>
+<script>
+(function(){
+const C = [
+{id:"uncc",  name:"UNCC Rec Outdoor Courts", x:258,y:100,  cap:20, count:14, hours:"6 AM – 11 PM", fee:"Free w/ student ID", lights:true,  free:true,  kind:"Outdoor · 2 full courts", skill:"Mixed", ago:2},
+{id:"reedy", name:"Reedy Creek Park",         x:300,y:182, cap:10, count:3,  hours:"7 AM – Dusk",   fee:"Free",               lights:false, free:true,  kind:"Outdoor · 1 full court",  skill:"Casual", ago:6},
+{id:"hornet",name:"Hornets’ Nest Park",       x:108,y:128, cap:10, count:9,  hours:"7 AM – Dusk",   fee:"Free",               lights:false, free:true,  kind:"Outdoor · 1 full court",  skill:"Competitive", ago:1},
+{id:"vets",  name:"Veterans Park",            x:238,y:292, cap:6,  count:0,  hours:"7 AM – 11 PM",  fee:"Free",               lights:true,  free:true,  kind:"Outdoor · 1 half court",  skill:"—", ago:34},
+{id:"marsh", name:"Marshall Park",            x:158,y:338, cap:10, count:6,  hours:"6 AM – 11 PM",  fee:"Free",               lights:true,  free:true,  kind:"Outdoor · 1 full court",  skill:"Mixed", ago:4},
+{id:"ymca",  name:"Uptown Rec Center (Indoor)",x:212,y:400,cap:20, count:18, hours:"5 AM – 10 PM",  fee:"$10 day pass",       lights:true,  free:false, kind:"Indoor · 2 full courts",  skill:"Competitive", ago:3},
+{id:"free",  name:"Freedom Park",             x:120,y:462, cap:10, count:5,  hours:"7 AM – 11 PM",  fee:"Free",               lights:true,  free:true,  kind:"Outdoor · 1 full court",  skill:"Casual", ago:9},
+];
+const HOME = {x:222,y:160};
+let now = new Date(); now.setHours(17,42,0,0);
+C.forEach(c=>c.updated = now.getTime() - c.ago*60000);
+const me = {x:HOME.x,y:HOME.y, at:null, checked:null, checkT:null, auto:false};
+let openId=null, filter="all";
+const $ = s=>document.querySelector(s);
+const svg = $("#map");
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+function level(c){const r=c.count/c.cap; if(c.count===0)return["Empty","#5d6975"]; if(r<.4)return["Light","#3fb5e8"]; if(r<.9)return["Game On","#ffb020"]; return["Packed","#ff4f4f"];}
+function agoTxt(c){const m=Math.max(0,Math.round((now.getTime()-c.updated)/60000)); return m<1?"just now":m+" min ago";}
+function fmtTime(d){return d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});}
+function drawBase(){
+svg.innerHTML="";
+const g=el("g",{});
+// parks
+[[108,128,34],[300,182,30],[158,338,22],[120,462,36],[238,292,18]].forEach(([x,y,r])=>g.append(el("circle",{cx:x,cy:y,r,fill:"#15261e"})));
+// campus block
+g.append(el("rect",{x:212,y:64,width:92,height:70,rx:10,fill:"#1a2230"}));
+const campus=el("text",{x:258,y:56,"text-anchor":"middle",class:"pinlabel",fill:"#8c98a5"}); campus.textContent="UNC CHARLOTTE"; campus.style.fill="#8c98a5"; g.append(campus);
+// roads
+const roads=[
+"M-10 250 C 80 240, 160 220, 370 160",   // I-85
+"M170 -10 C 175 120, 185 260, 200 490",  // I-77 / Tryon
+"M-10 380 C 120 360, 250 340, 370 300",
+"M40 -10 C 80 150, 120 300, 90 490",
+"M300 -10 C 290 120, 280 250, 320 490",
+];
+roads.forEach((d,i)=>g.append(el("path",{d,fill:"none",stroke:i<2?"#2f3a46":"#222b35","stroke-width":i<2?7:4,"stroke-linecap":"round"})));
+const up=el("text",{x:196,y:322,"text-anchor":"middle",class:"pinlabel"}); up.textContent="UPTOWN"; up.style.fill="#8c98a5"; g.append(up);
+const i85=el("text",{x:22,y:238,class:"pinlabel"}); i85.textContent="I-85"; i85.style.fill="#5d6975"; g.append(i85);
+svg.append(g);
+svg.append(el("g",{id:"fence"}));
+svg.append(el("g",{id:"pins"}));
+const meG=el("g",{id:"me"});
+meG.append(el("circle",{r:14,fill:"rgba(63,181,232,.2)"}));
+meG.append(el("circle",{r:6,fill:"#3fb5e8",stroke:"#fff","stroke-width":2}));
+svg.append(meG);
+}
+function drawPins(){
+const pins=$("#pins"); pins.innerHTML="";
+C.forEach(c=>{
+const [lv,col]=level(c); const r=7+Math.min(1,c.count/c.cap)*9;
+const g=el("g",{class:"pin",tabindex:0,role:"button","aria-label":c.name+", "+c.count+" players"});
+g.setAttribute("transform",`translate(${c.x},${c.y})`);
+if(lv==="Game On"||lv==="Packed") g.append(el("circle",{r, fill:col, class:"pulse"}));
+g.append(el("circle",{r, fill:col, stroke:"#0b0e12","stroke-width":2}));
+const t=el("text",{y:4,"text-anchor":"middle",style:"font:700 10px var(--body);fill:#0b0e12"}); t.textContent=c.count; g.append(t);
+const l=el("text",{y:r+13,"text-anchor":"middle",class:"pinlabel"}); l.textContent=c.name.replace(" (Indoor)","").replace(" Outdoor Courts",""); g.append(l);
+g.addEventListener("click",()=>openSheet(c.id));
+g.addEventListener("keydown",e=>{if(e.key==="Enter")openSheet(c.id)});
+pins.append(g);
+});
+$("#me").setAttribute("transform",`translate(${me.x},${me.y})`);
+const f=$("#fence"); f.innerHTML="";
+if(me.at){const c=byId(me.at); f.append(el("circle",{cx:c.x,cy:c.y,r:38,fill:"rgba(255,122,26,.08)",stroke:"#ff7a1a","stroke-dasharray":"4 4","stroke-width":1.5}));}
+}
+const byId=id=>C.find(c=>c.id===id);
+function drawList(){
+let rows=[...C].sort((a,b)=>b.count/b.cap-a.count/a.cap);
+if(filter==="active") rows=rows.filter(c=>c.count>0);
+if(filter==="free") rows=rows.filter(c=>c.free);
+if(filter==="lights") rows=rows.filter(c=>c.lights);
+$("#list").innerHTML=rows.map(c=>{const[lv,col]=level(c);return `<button class="card" data-id="${c.id}">
+<div class="name">${c.name}</div><div class="n">${c.count}<small>/${c.cap}</small></div>
+<div class="row"><span class="pill" style="background:${col};color:#0b0e12">${lv}</span><span class="sub">${c.fee} · ${agoTxt(c)}</span></div></button>`}).join("");
+$("#list").querySelectorAll(".card").forEach(b=>b.onclick=()=>openSheet(b.dataset.id));
+}
+function openSheet(id){openId=id; renderSheet(); $("#sheet").classList.add("open");}
+function closeSheet(){openId=null; $("#sheet").classList.remove("open");}
+function renderSheet(){
+if(!openId) return;
+const c=byId(openId); const [lv,col]=level(c); const pct=Math.min(100,c.count/c.cap*100);
+const mine = me.checked===c.id;
+let action;
+if(mine){
+const left = 120 - Math.round((now.getTime()-me.checkT)/60000);
+action = `<div class="checkedbox">✓ You’re checked in · expires in ${Math.floor(left/60)}h ${String(left%60).padStart(2,"0")}m
+<div class="muted" style="margin-top:6px;font-size:12px">How many people are here (including non-app players)?</div>
+<div class="hc"><button class="btn small ghost" data-hc="5">~5</button><button class="btn small ghost" data-hc="10">~10</button><button class="btn small ghost" data-hc="15">15+</button></div></div>
+<button class="btn ghost" id="coBtn">Check out</button>`;
+} else if(me.at===c.id){
+action = `<button class="btn primary" id="ciBtn">Check in here</button>`;
+} else {
+action = `<button class="btn ghost" id="dirBtn">Get directions</button>`;
+}
+$("#sheet").innerHTML = `<div class="grab"></div>
+<div class="row" style="justify-content:space-between;align-items:flex-start">
+<div style="min-width:0"><h2>${c.name}</h2><div class="muted" style="font-size:12px;margin-top:2px">${c.kind}</div></div>
+<button class="btn small ghost" id="xBtn" aria-label="Close">✕</button></div>
+<div class="row" style="margin-top:12px;justify-content:space-between">
+<div class="count">${c.count}<span class="muted" style="font-size:18px"> / ${c.cap} players</span></div>
+<span class="pill" style="background:${col};color:#0b0e12">${lv}</span></div>
+<div class="meter"><b style="width:${pct}%;background:${col}"></b></div>
+<div class="muted" style="font-size:11.5px">Updated ${agoTxt(c)} · from check-ins and headcount reports</div>
+<div class="facts">
+<div class="fact"><small>Hours</small><strong>${c.hours}</strong></div>
+<div class="fact"><small>Fee</small><strong>${c.fee}</strong></div>
+<div class="fact"><small>Lights</small><strong>${c.lights?"Yes":"No"}</strong></div>
+<div class="fact"><small>Skill right now</small><strong>${c.skill}</strong></div>
+</div>${action}`;
+$("#xBtn").onclick=closeSheet;
+const ci=$("#ciBtn"); if(ci) ci.onclick=()=>checkIn(c.id,false);
+const co=$("#coBtn"); if(co) co.onclick=()=>checkOut("manual");
+const dir=$("#dirBtn"); if(dir) dir.onclick=()=>walkTo(c.id);
+$("#sheet").querySelectorAll("[data-hc]").forEach(b=>b.onclick=()=>{
+const n=+b.dataset.hc; c.count=Math.round((c.count+n)/2); c.updated=now.getTime();
+log(`Headcount report at <b>${c.name}</b>: ~${n}. Count averaged to ${c.count}.`); toast("Thanks! Headcount updated"); refresh();
+});
+}
+let notifTimer;
+function notify(text, buttons){
+const n=$("#notif");
+n.innerHTML=`<div class="app"><span><b style="color:var(--accent)">●</b> PICK ME UP</span><span>now</span></div><p>${text}</p>`+
+(buttons?`<div class="row">${buttons.map((b,i)=>`<button class="btn small ${i===0?"primary":"ghost"}" data-i="${i}">${b[0]}</button>`).join("")}</div>`:"");
+n.classList.add("show"); clearTimeout(notifTimer);
+if(buttons) n.querySelectorAll("[data-i]").forEach(btn=>btn.onclick=()=>{n.classList.remove("show"); buttons[+btn.dataset.i][1]();});
+else notifTimer=setTimeout(()=>n.classList.remove("show"),3800);
+}
+function toast(t){const e=$("#toast"); e.textContent=t; e.classList.add("show"); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("show"),2200);}
+function log(t){const l=$("#log"); l.innerHTML+=`<div>${fmtTime(now)} · ${t}</div>`; l.scrollTop=l.scrollHeight;}
+let walking=false;
+function animateTo(x,y,done){
+walking=true; const sx=me.x, sy=me.y, t0=performance.now(), dur=1400;
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function step(t){const k=reduce?1:Math.min(1,(t-t0)/dur); const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+me.x=sx+(x-sx)*e; me.y=sy+(y-sy)*e; $("#me").setAttribute("transform",`translate(${me.x},${me.y})`);
+if(k<1) requestAnimationFrame(step); else {walking=false; done&&done();}}
+requestAnimationFrame(step);
+}
+function walkTo(id){
+if(walking) return;
+if(me.checked && me.checked!==id) checkOut("left");
+const c=byId(id); showTab("map"); closeSheet();
+log(`Walking to <b>${c.name}</b>…`);
+animateTo(c.x-10,c.y+8,()=>{
+me.at=id; drawPins();
+log(`Entered geofence (~100 yards) around ${c.name}.`);
+advance(5);
+if(me.auto){ checkIn(id,true); }
+else {
+log(`5 min inside the geofence → sending check-in prompt.`);
+notify(`Looks like you’re at <b>${c.name}</b>. Check in so players know you’re here?`,
+[["Check in",()=>checkIn(id,false)],["Not now",()=>log("Player dismissed the prompt. No check-in.")]]);
+}
+});
+}
+function checkIn(id,auto){
+if(me.checked===id) return;
+const c=byId(id); me.checked=id; me.checkT=now.getTime(); c.count++; c.updated=now.getTime();
+log(auto?`<b>Auto Check-In</b> at ${c.name}. The player tapped nothing.`:`Checked in at <b>${c.name}</b> with one tap.`);
+if(auto) notify(`You’re checked in at <b>${c.name}</b>. We’ll check you out when you leave.`);
+toast(`+1 at ${c.name.split(" ")[0]} → ${c.count} players`);
+openSheet(id); refresh();
+}
+function checkOut(why){
+if(!me.checked) return;
+const c=byId(me.checked); c.count=Math.max(0,c.count-1); c.updated=now.getTime();
+const msg={manual:`Checked out of <b>${c.name}</b> manually.`,left:`Outside the geofence for 10 min → <b>auto checked out</b> of ${c.name}.`,expired:`2 hours passed → check-in at <b>${c.name}</b> <b>expired</b> automatically.`}[why];
+log(msg);
+if(why==="left") notify(`You left <b>${c.name}</b>. You’ve been checked out automatically.`);
+if(why==="expired") notify(`Your check-in at <b>${c.name}</b> expired after 2 hours.`);
+me.checked=null; me.checkT=null; refresh();
+}
+function advance(min){now=new Date(now.getTime()+min*60000); $("#clock").textContent=fmtTime(now);}
+$("#ff90").onclick=()=>{
+if(!me.checked){toast("Check in at a court first"); return;}
+const c=byId(me.checked); advance(90); log(`Skipped ahead 90 min. Sent a “still there?” reminder.`);
+notify(`Still hoopin’ at <b>${c.name}</b>?`,[["Yes, still here",()=>{me.checkT=now.getTime(); log("Player confirmed. Check-in timer reset to 2 hrs."); refresh();}],["I left",()=>checkOut("manual")]]);
+refresh();
+};
+$("#ff120").onclick=()=>{
+if(!me.checked){toast("Check in at a court first"); return;}
+advance(120); checkOut("expired");
+};
+$("#leave").onclick=()=>{
+if(walking) return;
+if(!me.at){toast("Walk to a court first"); return;}
+log("Walking away from the court…"); closeSheet();
+animateTo(HOME.x,HOME.y,()=>{ me.at=null; advance(10); if(me.checked) checkOut("left"); else log("Left the area (wasn’t checked in)."); refresh(); });
+};
+$("#reset").onclick=()=>{location.reload();};
+document.querySelectorAll("[data-walk]").forEach(b=>b.onclick=()=>walkTo(b.dataset.walk));
+$("#autoSw").onclick=e=>{me.auto=!me.auto; e.currentTarget.setAttribute("aria-checked",me.auto); log(`Auto Check-In turned <b>${me.auto?"on":"off"}</b>.`);};
+$("#proBtn").onclick=()=>toast("Pro trial started (demo)");
+function showTab(t){
+document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===t));
+["map","list","pro"].forEach(s=>$("#scr-"+s).hidden = s!==t);
+if(t!=="map") closeSheet();
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.t));
+document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{filter=b.dataset.f; document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b)); drawList();});
+function refresh(){
+drawPins(); drawList(); renderSheet();
+$("#liveTotal").textContent = C.reduce((s,c)=>s+c.count,0)+" players on court";
+}
+setInterval(()=>{
+const pool=C.filter(c=>c.id!==me.checked);
+const c=pool[Math.floor(Math.random()*pool.length)];
+const d=Math.random()<.55?1:-1; const nv=Math.max(0,Math.min(c.cap+2,c.count+d));
+if(nv!==c.count){c.count=nv; c.updated=now.getTime(); refresh();}
+},3500);
+setInterval(()=>{advance(1); refresh();},15000);
+drawBase(); refresh();
+log("Demo ready. Tap a court on the map, or use the steps above.");
+})();
+</script>
+</body>
+</html>
